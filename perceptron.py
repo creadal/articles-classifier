@@ -13,7 +13,7 @@ for line in dict_file:
     dictionary.append(line)
 
 dl = len(dictionary)
-neuron_number = 6
+neuron_number = 1
 weights = [[[0 for i in range(neuron_number)] for j in range(dl)], [[0 for i in range(dl)] for j in range(neuron_number)]]
 
 
@@ -26,12 +26,12 @@ outputs = []
 for line in train_vectors_i:
     line2 = line[1:-2]
     input_vector = line2.split(', ')
-    input_vectors.append([int(i) for i in input_vector])
+    input_vectors.extend([[int(i) for i in input_vector]])
 
 for line in train_vectors_o:
     line2 = line[1:-2]
     output_vector = line2.split(', ')
-    outputs.append([int(i) for i in output_vector])
+    outputs.extend([[int(i) for i in output_vector]])
 
 print('read')
 
@@ -71,13 +71,24 @@ def propogation(input_vector, weights, dictionary_length = dl, neuron_number = n
     return output_vector
 
 
-def calculate_accuracy(inputs, outputs, weights, dictionary_length = dl, neuron_number = neuron_number, activation_function = ReLU):
+def calculate_indices(list_, d = 0.05):
+    indices = []
+
+    for i in range(int(len(list_)/(1/d))):
+        index = random.randint(0, int(len(outputs)) - 1)
+        indices.extend([index])
+
+    return indices
+
+
+def calculate_accuracy(inputs, outputs, weights, indices, dictionary_length = dl, neuron_number = neuron_number, activation_function = ReLU):
     TN_TP = 0
     TN_TP_FP_FN = 0
 
-    for i in range(int(len(inputs)/50)):
+    for i in indices:
+
         TN_TP_FP_FN += 1
-        if classify(propogation(inputs[i*50], weights)) == classify(outputs[i*10]):
+        if classify(propogation(inputs[i], weights)) == classify(outputs[i]):
             TN_TP += 1
 
     return TN_TP/TN_TP_FP_FN
@@ -99,7 +110,7 @@ def crossed(wights1, weights2):
     return w3
 
 
-def mutate(weights, percentage = .4, rate = .5, probabilty = .1):
+def mutate(weights, percentage = .4, rate = 2, probabilty = .1):
     p = random.randint(0, 100) / 100
     if p < probabilty:
         return weights
@@ -122,7 +133,7 @@ def mutate(weights, percentage = .4, rate = .5, probabilty = .1):
     return weights
 
 
-def train(input_vectors, outputs, population_count = 50, epochs = 1):
+def train(input_vectors, outputs, population_count = 10, epochs = 1):
 
     global dl
     global neuron_number
@@ -153,15 +164,18 @@ def train(input_vectors, outputs, population_count = 50, epochs = 1):
         survived = []
         measured = []
         for j in new_population:
-            measured.extend([calculate_accuracy(input_vectors, outputs, j)])
+            indices = calculate_indices(outputs)
+            measured.extend([calculate_accuracy(input_vectors, outputs, j, indices)])
             print('N: {}/{}, ACC: {}, last: {}'.format(new_population.index(j), len(new_population), "%.3f" % max(measured),"%.3f" % measured[-1]))
 
-        res_for_this_epoch = max(measured)
+        
 
         for i in range(population_count):
             survived.extend([new_population[measured.index(max(measured))]])
             new_population.remove(new_population[measured.index(max(measured))])
             measured.remove(max(measured))
+
+        res_for_this_epoch = calculate_accuracy(input_vectors, outputs, survived[0], range(len(outputs)))
 
         population = survived[:]
 
@@ -169,4 +183,4 @@ def train(input_vectors, outputs, population_count = 50, epochs = 1):
 
 #train([[[0,0,0],[0,0,0]], [[0],[0],[0]]], [[1, 2],[1, 3],[2, 2],[2, 3],[3, 3]], [3, 4, 4, 5, 6], epochs = 5)
 
-train(input_vectors, outputs, epochs=100)
+train(input_vectors, outputs, epochs=1000)
